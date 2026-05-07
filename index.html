@@ -503,21 +503,10 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: var(--r
   <div id="recordsList"></div>
 </div>
 
-<!-- ===== 選手成績 ===== -->
+<!-- ===== 選手 ===== -->
 <div id="screen-players" class="screen">
-  <div class="sec-title"><span>🏅</span>選手別成績</div>
-
-  <div class="card" style="background:linear-gradient(135deg,var(--gold-light),#fdebb0);padding:14px">
-    <div style="display:flex;align-items:center;gap:10px">
-      <div style="font-size:2rem">🏆</div>
-      <div>
-        <div style="font-weight:800;color:#7d5a00">得点王ランキング</div>
-        <div style="font-size:0.72rem;color:#7d5a00;opacity:0.8">記録された得点者を集計</div>
-      </div>
-    </div>
-  </div>
-
-  <div id="playerRanking"></div>
+  <div class="sec-title"><span>👥</span>選手一覧</div>
+  <div id="playerList"></div>
 </div>
 
 <!-- ===== 設定 ===== -->
@@ -572,13 +561,16 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: var(--r
 
   <!-- 大会写真 -->
   <div id="standingsPhotoSection"></div>
+
+  <!-- 大会動画 -->
+  <div id="standingsVideoSection"></div>
 </div>
 <nav class="bottom-nav">
   <button class="nav-btn active" onclick="goTab('home')"><span class="ico">🏠</span><span class="lbl">ホーム</span></button>
   <button class="nav-btn" onclick="goTab('input')"><span class="ico">✏️</span><span class="lbl">入力</span></button>
   <button class="nav-btn" onclick="goTab('records')"><span class="ico">🔍</span><span class="lbl">検索</span></button>
   <button class="nav-btn" onclick="goTab('standings')"><span class="ico">🏆</span><span class="lbl">順位表</span></button>
-  <button class="nav-btn" onclick="goTab('players')"><span class="ico">🏅</span><span class="lbl">選手</span></button>
+  <button class="nav-btn" onclick="goTab('players')"><span class="ico">👥</span><span class="lbl">選手</span></button>
   <button class="nav-btn" onclick="goTab('settings')"><span class="ico">⚙️</span><span class="lbl">設定</span></button>
 </nav>
 
@@ -620,6 +612,43 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: var(--r
 </div>
 
 
+<!-- ===== 動画モーダル ===== -->
+<div class="modal-overlay" id="videoModal" onclick="if(event.target===this)closeVideoModal()">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">🎬 動画を追加</div>
+    <div id="videoModalTournamentLabel" style="font-size:0.8rem;color:var(--muted);margin-bottom:12px"></div>
+    <label style="margin-top:0">YouTube URL</label>
+    <input type="text" id="videoUrlIn" placeholder="https://www.youtube.com/watch?v=..." style="margin-bottom:4px">
+    <p style="font-size:0.72rem;color:var(--muted);margin-bottom:12px">YouTubeの「共有」→「リンクをコピー」したURLを貼り付けてください</p>
+    <div id="videoPreviewWrap" style="display:none;margin-bottom:12px">
+      <div style="border-radius:12px;overflow:hidden;box-shadow:var(--shadow);background:#000;position:relative;padding-top:56.25%">
+        <iframe id="videoPreviewFrame" src="" style="position:absolute;top:0;left:0;width:100%;height:100%;border:none" allowfullscreen></iframe>
+      </div>
+    </div>
+    <label>タイトル（任意）</label>
+    <input type="text" id="videoTitleIn" placeholder="例：レオーネ戦 ハイライト" style="margin-bottom:10px">
+    <button class="btn btn-outline" style="margin-top:0;margin-bottom:8px" onclick="previewVideo()">👁 プレビュー確認</button>
+    <button class="btn btn-red" style="margin-top:0" onclick="saveVideo()">💾 保存する</button>
+    <button class="btn btn-outline" onclick="closeVideoModal()">閉じる</button>
+  </div>
+</div>
+
+<!-- ===== 動画ビューモーダル ===== -->
+<div class="modal-overlay" id="videoViewModal" onclick="if(event.target===this)closeVideoView()">
+  <div class="modal" style="padding:16px 16px calc(20px + env(safe-area-inset-bottom))">
+    <div class="modal-handle"></div>
+    <div id="videoViewTitle" style="font-weight:800;font-size:0.95rem;margin-bottom:10px"></div>
+    <div style="border-radius:12px;overflow:hidden;background:#000;position:relative;padding-top:56.25%;margin-bottom:14px">
+      <iframe id="videoViewFrame" src="" style="position:absolute;top:0;left:0;width:100%;height:100%;border:none" allowfullscreen></iframe>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-outline" style="margin-top:0" onclick="closeVideoView()">閉じる</button>
+      <button class="btn btn-red" style="margin-top:0;background:var(--red-light);color:var(--red)" onclick="deleteVideoById()">🗑 削除</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="shareModal" onclick="if(event.target===this)closeShare()">
   <div class="modal">
     <div class="modal-handle"></div>
@@ -637,19 +666,19 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: var(--r
 // ===== データ =====
 // ===== 初期データ =====
 const INIT_PLAYERS = [
-  '遠藤 碧人（あいと）',
-  '田中 瑛就（えいしゅう）',
-  '平城 岳（がく）',
-  '増田 朔大（さくた）',
-  '尾崎 蒼（そう）',
-  '石井 聡一郎（そういちろう）',
-  '香川 紡希（つむぎ）',
-  '玉木 洸人（ひろと）',
-  '高野 珀翔（はくと）',
-  '澤地 玲臣（れお）',
-  '柏木 陸人（りと）',
-  '石井 佑空（ゆら）',
-  '西村 春真（はるま）'
+  '石井 聡一郎（いしい そういちろう）',
+  '石井 佑空（いしい ゆら）',
+  '遠藤 碧人（えんどう あいと）',
+  '尾崎 蒼（おざき そう）',
+  '香川 紡希（かがわ つむぎ）',
+  '柏木 陸人（かしわぎ りと）',
+  '澤地 玲臣（さわじ れお）',
+  '高野 珀翔（たかの はくと）',
+  '田中 瑛就（たなか えいしゅう）',
+  '玉木 洸人（たまき ひろと）',
+  '西村 春真（にしむら はるま）',
+  '平城 岳（ひらき がく）',
+  '増田 朔大（ますだ さくた）'
 ];
 
 const INIT_MATCHES = [
@@ -660,9 +689,9 @@ const INIT_MATCHES = [
     myScore: 7, oppScore: 0,
     matchType: 'public', homeAway: 'away',
     scorers: [
-      { player: '高野 珀翔（はくと）', goals: 3 },
-      { player: '増田 朔大（さくた）', goals: 3 },
-      { player: '澤地 玲臣（れお）',   goals: 1 }
+      { player: '高野 珀翔（たかの はくと）', goals: 3 },
+      { player: '増田 朔大（ますだ さくた）', goals: 3 },
+      { player: '澤地 玲臣（さわじ れお）',   goals: 1 }
     ],
     memo: '', result: 'win'
   },
@@ -673,9 +702,9 @@ const INIT_MATCHES = [
     myScore: 3, oppScore: 1,
     matchType: 'public', homeAway: 'away',
     scorers: [
-      { player: '平城 岳（がく）',     goals: 1 },
-      { player: '高野 珀翔（はくと）', goals: 1 },
-      { player: '田中 瑛就（えいしゅう）', goals: 1 }
+      { player: '平城 岳（ひらき がく）',         goals: 1 },
+      { player: '高野 珀翔（たかの はくと）',       goals: 1 },
+      { player: '田中 瑛就（たなか えいしゅう）',   goals: 1 }
     ],
     memo: '', result: 'win'
   },
@@ -694,34 +723,42 @@ const INIT_MATCHES = [
     myScore: 1, oppScore: 0,
     matchType: 'public', homeAway: 'away',
     scorers: [
-      { player: '田中 瑛就（えいしゅう）', goals: 1 }
+      { player: '田中 瑛就（たなか えいしゅう）', goals: 1 }
     ],
     memo: '', result: 'win'
   }
 ];
 
-localStorage.setItem('yhg9_matches', JSON.stringify(INIT_MATCHES));
-localStorage.setItem('yhg9_players', JSON.stringify(INIT_PLAYERS));
+// 選手データは常に最新に強制更新
+try {
+  localStorage.setItem('yhg9_players', JSON.stringify(INIT_PLAYERS));
+} catch(e) {}
 
-let matches = JSON.parse(localStorage.getItem('yhg9_matches'));
-let players = JSON.parse(localStorage.getItem('yhg9_players'));
+// 試合データは初回のみセット
+try {
+  if (!localStorage.getItem('yhg9_matches')) {
+    localStorage.setItem('yhg9_matches', JSON.stringify(INIT_MATCHES));
+  }
+} catch(e) {}
+
+let matches = (() => { try { return JSON.parse(localStorage.getItem('yhg9_matches')) || INIT_MATCHES; } catch(e) { return INIT_MATCHES; } })();
+let players = (() => { try { return JSON.parse(localStorage.getItem('yhg9_players')) || INIT_PLAYERS; } catch(e) { return INIT_PLAYERS; } })();
 let curFilter = 'all';
 let scorerRows = [];
 
-let photos = JSON.parse(localStorage.getItem('yhg9_photos') || '[]');
+let photos = (() => { try { return JSON.parse(localStorage.getItem('yhg9_photos')) || []; } catch(e) { return []; } })();
+let videos = (() => { try { return JSON.parse(localStorage.getItem('yhg9_videos')) || []; } catch(e) { return []; } })();
 let pendingPhotoData = null;
 let currentPhotoTournament = '';
+let currentVideoTournament = '';
 let viewingPhotoId = null;
+let viewingVideoId = null;
 
 function persist() {
-  try {
-    localStorage.setItem('yhg9_matches', JSON.stringify(matches));
-    localStorage.setItem('yhg9_players', JSON.stringify(players));
-    localStorage.setItem('yhg9_photos', JSON.stringify(photos));
-  } catch(e) {
-    // storageがいっぱいの場合は写真だけ例外を投げて呼び出し元で処理
-    throw e;
-  }
+  try { localStorage.setItem('yhg9_matches', JSON.stringify(matches)); } catch(e) {}
+  try { localStorage.setItem('yhg9_players', JSON.stringify(players)); } catch(e) {}
+  try { localStorage.setItem('yhg9_photos',  JSON.stringify(photos));  } catch(e) { throw e; } // 写真は呼び元でハンドル
+  try { localStorage.setItem('yhg9_videos',  JSON.stringify(videos));  } catch(e) {}
 }
 
 function toast(msg) {
@@ -983,6 +1020,7 @@ function initStandings() {
     sel.value = tournaments[0];
     renderStandings();
     renderStandingsPhotos(tournaments[0]);
+    renderStandingsVideos(tournaments[0]);
   } else {
     document.getElementById('standingsSummary').innerHTML = '';
     document.getElementById('standingsBlock').innerHTML = '';
@@ -1001,6 +1039,7 @@ function renderStandings() {
   const ms = matches.filter(m => m.tournament === tournament);
   if (ms.length === 0) return;
   renderStandingsPhotos(tournament);
+  renderStandingsVideos(tournament);
 
   // 矢作SC の集計
   const wins = ms.filter(m => m.result === 'win').length;
@@ -1323,6 +1362,125 @@ function deletePhotoById() {
   toast('🗑 削除しました');
 }
 
+// ===== 大会別動画 =====
+function getYouTubeId(url) {
+  // 各種YouTube URL形式に対応
+  const patterns = [
+    /youtu\.be\/([^?&]+)/,
+    /youtube\.com\/watch\?v=([^&]+)/,
+    /youtube\.com\/embed\/([^?&]+)/,
+    /youtube\.com\/shorts\/([^?&]+)/,
+  ];
+  for (const p of patterns) {
+    const m = url.match(p);
+    if (m) return m[1];
+  }
+  return null;
+}
+
+function renderStandingsVideos(tournament) {
+  const tourVideos = videos.filter(v => v.tournament === tournament);
+  const section = document.getElementById('standingsVideoSection');
+
+  const grid = tourVideos.map((v, i) => {
+    const thumbUrl = `https://img.youtube.com/vi/${v.videoId}/mqdefault.jpg`;
+    return `
+      <div onclick="openVideoView(${v.id})" style="border-radius:12px;overflow:hidden;background:white;box-shadow:var(--shadow);cursor:pointer;animation:fadeUp 0.25s ease ${i*0.05}s both">
+        <div style="position:relative">
+          <img src="${thumbUrl}" style="width:100%;aspect-ratio:16/9;object-fit:cover;display:block" onerror="this.style.background='#111';this.style.minHeight='90px'">
+          <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center">
+            <div style="width:40px;height:40px;background:rgba(255,0,0,0.85);border-radius:50%;display:flex;align-items:center;justify-content:center">
+              <span style="color:white;font-size:1rem;margin-left:3px">▶</span>
+            </div>
+          </div>
+        </div>
+        ${v.title ? `<div style="padding:7px 10px;font-size:0.75rem;font-weight:700;color:var(--text)">${v.title}</div>` : ''}
+      </div>
+    `;
+  }).join('');
+
+  section.innerHTML = `
+    <div class="sec-title" style="margin-top:4px"><span>🎬</span>大会動画</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">
+      ${grid || '<div style="grid-column:span 2;text-align:center;padding:30px;color:#bbb;font-size:0.85rem">🎬<br>動画がまだありません</div>'}
+    </div>
+    <button onclick="openVideoModal('${tournament}')" style="width:100%;padding:12px;border:2px dashed var(--border);border-radius:12px;background:white;color:var(--muted);font-weight:800;font-size:0.85rem;cursor:pointer;font-family:'M PLUS Rounded 1c',sans-serif;margin-bottom:16px">
+      🎬 動画を追加する（YouTube）
+    </button>
+  `;
+}
+
+function openVideoModal(tournament) {
+  currentVideoTournament = tournament;
+  document.getElementById('videoUrlIn').value = '';
+  document.getElementById('videoTitleIn').value = '';
+  document.getElementById('videoPreviewWrap').style.display = 'none';
+  document.getElementById('videoPreviewFrame').src = '';
+  document.getElementById('videoModalTournamentLabel').textContent = `📁 ${tournament}`;
+  document.getElementById('videoModal').classList.add('show');
+}
+
+function closeVideoModal() {
+  document.getElementById('videoModal').classList.remove('show');
+  document.getElementById('videoPreviewFrame').src = '';
+}
+
+function previewVideo() {
+  const url = document.getElementById('videoUrlIn').value.trim();
+  const id = getYouTubeId(url);
+  if (!id) { toast('⚠️ YouTubeのURLを正しく入力してください'); return; }
+  document.getElementById('videoPreviewFrame').src = `https://www.youtube.com/embed/${id}`;
+  document.getElementById('videoPreviewWrap').style.display = 'block';
+  toast('✅ プレビューを表示しました');
+}
+
+function saveVideo() {
+  const url = document.getElementById('videoUrlIn').value.trim();
+  const title = document.getElementById('videoTitleIn').value.trim();
+  const id = getYouTubeId(url);
+  if (!id) { toast('⚠️ YouTubeのURLを正しく入力してください'); return; }
+  videos.unshift({
+    id: Date.now(),
+    tournament: currentVideoTournament,
+    videoId: id,
+    url,
+    title: title || 'YouTube動画',
+    date: new Date().toLocaleDateString('ja-JP')
+  });
+  persist();
+  closeVideoModal();
+  renderStandingsVideos(currentVideoTournament);
+  toast('🎬 動画を追加しました');
+}
+
+function openVideoView(id) {
+  const v = videos.find(x => x.id === id);
+  if (!v) return;
+  viewingVideoId = id;
+  document.getElementById('videoViewTitle').textContent = v.title || 'YouTube動画';
+  document.getElementById('videoViewFrame').src = `https://www.youtube.com/embed/${v.videoId}?autoplay=1`;
+  document.getElementById('videoViewModal').classList.add('show');
+}
+
+function closeVideoView() {
+  document.getElementById('videoViewModal').classList.remove('show');
+  document.getElementById('videoViewFrame').src = '';
+  viewingVideoId = null;
+}
+
+function deleteVideoById() {
+  if (!viewingVideoId) return;
+  if (!confirm('この動画を削除しますか？')) return;
+  const v = videos.find(x => x.id === viewingVideoId);
+  const t = v ? v.tournament : '';
+  videos = videos.filter(x => x.id !== viewingVideoId);
+  persist();
+  closeVideoView();
+  if (t) renderStandingsVideos(t);
+  toast('🗑 削除しました');
+}
+
+
 function shareStandings(tournament) {
   const ms = matches.filter(m => m.tournament === tournament);
   const wins = ms.filter(m=>m.result==='win').length;
@@ -1351,31 +1509,32 @@ function shareStandings(tournament) {
 
 
 function renderPlayerRanking() {
-  const stats = {};
-  matches.forEach(m => {
-    (m.scorers || []).forEach(s => {
-      if (!s.player) return;
-      if (!stats[s.player]) stats[s.player] = { goals: 0, games: new Set() };
-      stats[s.player].goals += (s.goals || 1);
-      stats[s.player].games.add(m.id);
-    });
-  });
-  const sorted = Object.entries(stats).sort(([,a],[,b]) => b.goals - a.goals);
-  const container = document.getElementById('playerRanking');
-  if (sorted.length === 0) {
-    container.innerHTML = '<div class="empty-state"><div class="emo">🏅</div><p>得点者を記録すると<br>ここにランキングが表示されます</p></div>';
+  const container = document.getElementById('playerList');
+  if (players.length === 0) {
+    container.innerHTML = '<div class="empty-state"><div class="emo">👥</div><p>設定タブから選手を登録してください</p></div>';
     return;
   }
-  container.innerHTML = sorted.map(([player, s], i) => {
-    const rankCls = i===0?'top1':i===1?'top2':i===2?'top3':'';
-    return `<div class="player-stat-card">
-      <div class="player-rank ${rankCls}">${i+1}</div>
-      <div class="player-info">
-        <div class="player-name">${player}</div>
-      </div>
-      <div class="player-goals">${s.goals}<small>G</small></div>
-    </div>`;
-  }).join('');
+  // ふりがな全体（苗字から）でソート
+  const sorted = [...players].sort((a, b) => {
+    const yomiA = (a.match(/（(.+?)）/)?.[1] || a).trim();
+    const yomiB = (b.match(/（(.+?)）/)?.[1] || b).trim();
+    return yomiA.localeCompare(yomiB, 'ja');
+  });
+  container.innerHTML = `
+    <div class="card" style="padding:0;overflow:hidden">
+      ${sorted.map((p, i) => {
+        const name = p.split('（')[0].trim();
+        const yomi = p.match(/（(.+?)）/)?.[1] || '';
+        return `<div style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid var(--border);${i===sorted.length-1?'border-bottom:none':''}">
+          <div style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,var(--red),var(--red-dark));color:white;display:flex;align-items:center;justify-content:center;font-family:'Oswald',sans-serif;font-weight:700;font-size:0.85rem;flex-shrink:0">${i+1}</div>
+          <div>
+            <div style="font-weight:800;font-size:0.9rem">${name}</div>
+            ${yomi ? `<div style="font-size:0.7rem;color:var(--muted)">${yomi}</div>` : ''}
+          </div>
+        </div>`;
+      }).join('')}
+    </div>
+  `;
 }
 
 // ===== 設定 =====
