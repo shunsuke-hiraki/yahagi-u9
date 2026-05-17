@@ -752,11 +752,27 @@ const INIT_MATCHES = [
   }
 ];
 
-// 選手・試合データは常に最新に強制更新
+// ===== データ初期化戦略 =====
+// 選手名簿：常に最新に更新
+try { localStorage.setItem('yhg9_players', JSON.stringify(INIT_PLAYERS)); } catch(e) {}
+
+// 試合データ：初回のみセット（手動入力・写真を保持するため上書きしない）
 try {
-  localStorage.setItem('yhg9_players', JSON.stringify(INIT_PLAYERS));
-  localStorage.setItem('yhg9_matches', JSON.stringify(INIT_MATCHES));
+  if (!localStorage.getItem('yhg9_matches')) {
+    localStorage.setItem('yhg9_matches', JSON.stringify(INIT_MATCHES));
+  } else {
+    // 既存データにINIT_MATCHESのIDが無ければ追加（新大会データのみ追記）
+    const existing = JSON.parse(localStorage.getItem('yhg9_matches')) || [];
+    const existingIds = existing.map(m => m.id);
+    const toAdd = INIT_MATCHES.filter(m => !existingIds.includes(m.id));
+    if (toAdd.length > 0) {
+      const merged = [...existing, ...toAdd].sort((a,b) => new Date(b.date) - new Date(a.date));
+      localStorage.setItem('yhg9_matches', JSON.stringify(merged));
+    }
+  }
 } catch(e) {}
+
+// 写真・動画：一切触らない（localStorage に既存データを保持）
 
 let matches = (() => { try { return JSON.parse(localStorage.getItem('yhg9_matches')) || INIT_MATCHES; } catch(e) { return INIT_MATCHES; } })();
 let players = (() => { try { return JSON.parse(localStorage.getItem('yhg9_players')) || INIT_PLAYERS; } catch(e) { return INIT_PLAYERS; } })();
